@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# pyxcf
+# Copyright 2011 Grigory Petrov
+# See LICENSE for details.
+
+# Test.
+
 import pyxcf
 
 oImg = pyxcf.open( "test.xcf" )

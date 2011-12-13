@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-##  Bootstraper for using pyxcf without install.
+# pyxcf
+# Copyright 2011 Grigory Petrov
+# See LICENSE for details.
+
+# Bootstrapper file to use pyxcf without install.
+
 from pyxcf import *
 

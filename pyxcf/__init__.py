@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# pyxcf
+# Copyright 2011 Grigory Petrov
+# See LICENSE for details.
+
+# Main library code.
+
 import __builtin__, struct
 
 PROP_END         = 0
