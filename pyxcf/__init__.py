@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# pyxcf
-# Copyright 2011 Grigory Petrov
+# pyxcf implementation.
+# Copyright 2013 Grigory Petrov
 # See LICENSE for details.
 
 # Main library code.
@@ -17,157 +17,190 @@ PROP_PARASITES   = 21
 PROP_UNIT        = 22
 PROP_VECTORS     = 25
 
+
 class CImage( object ) :
+
+
   def __init__( self ) :
     self.size   = (0,0)
     self.mode   = ""
     self.props  = []
     self.layers = []
 
+
 class CProp( dict ) :
+
+
   def __init__( self ) :
-    super( CProp, self ).__init__()
+    dict.__init__( self )
     self.type = PROP_END
     ##! Can be incorrect for known property types.
     self.size = 0
 
+
 class CLayer( dict ) :
+
+
   def __init__( self ) :
     super( CLayer, self ).__init__()
     self.size  = (0,0)
     self.mode  = ""
     self.alpha = False
 
+
 class CReader( object ) :
-  def __init__( self, i_sData ) :
-    self.m_sData = i_sData
+
+
+  def __init__( self, s_data ) :
+    self.m_sData = s_data
     self.m_nOffset = 0
     self.m_lOffsets = []
-  def Read( self, i_sFormat ) :
+
+
+  def read( self, s_format ) :
     ABOUT = { '!' : 0, 'B' : 1, 'H' : 2, 'I' : 4, 'f' : 4 }
-    nLen = reduce( lambda x, y : x + y, [ ABOUT[ x ] for x in i_sFormat ] )
+    nLen = reduce( lambda x, y : x + y, [ ABOUT[ x ] for x in s_format ] )
     sSplice = self.m_sData[ self.m_nOffset : self.m_nOffset + nLen ]
-    gItems = struct.unpack( i_sFormat, sSplice )
+    print( len( sSplice ), nLen )
+    gItems = struct.unpack( s_format, sSplice )
     self.m_nOffset += nLen
     return gItems if len( gItems ) > 1 else gItems[ 0 ]
-  def ReadArray( self, i_nLen ) :
-    sSplice = self.m_sData[ self.m_nOffset : self.m_nOffset + i_nLen ]
-    self.m_nOffset += i_nLen
+
+
+  def readArray( self, n_len ) :
+    sSplice = self.m_sData[ self.m_nOffset : self.m_nOffset + n_len ]
+    self.m_nOffset += n_len
     return sSplice
+
+
   def Push( self, i_nNewOffset ) :
     self.m_lOffsets.append( self.m_nOffset )
     self.m_nOffset = i_nNewOffset
+
+
   def Pop( self ) :
     self.m_nOffset = self.m_lOffsets.pop()
 
+
 class CReaderXcf( CReader ) :
 
-  def ReadStr( self ) :
-    nLen = self.Read( '!I' )
+
+  def readStr( self ) :
+    nLen = self.read( '!I' )
     assert nLen > 0
     ##  Length includes terminating zero byte.
-    sData = self.ReadArray( nLen - 1 )
+    sData = self.readArray( nLen - 1 )
     ##  Terminating zero byte.
-    self.Read( '!B' )
+    self.read( '!B' )
     return sData.decode( 'utf-8' )
 
-  def ReadBool( self ) :
-    return { 1 : True, 0 : False }[ self.Read( '!I' ) ]
 
-  def ReadPropEnd( self, b_oProp ) :
-    assert 0 == b_oProp.size
+  def readBool( self ) :
+    return { 1 : True, 0 : False }[ self.read( '!I' ) ]
+
+
+  def readPropEnd( self, o_prop ) :
+    assert 0 == o_prop.size
     pass
 
-  def ReadPropCompression( self, b_oProp ) :
-    assert 1 == b_oProp.size
-    b_oProp[ 'COMPRESSION' ] = self.Read( '!B' )
 
-  def ReadPropResolution( self, b_oProp ) :
-    assert 8 == b_oProp.size
-    b_oProp[ 'RES_X' ], b_oProp[ 'RES_Y' ] = self.Read( '!ff' )
+  def readPropCompression( self, o_prop ) :
+    assert 1 == o_prop.size
+    o_prop[ 'COMPRESSION' ] = self.read( '!B' )
 
-  def ReadPropTattoo( self, b_oProp ) :
-    assert 4 == b_oProp.size
+
+  def readPropResolution( self, o_prop ) :
+    assert 8 == o_prop.size
+    o_prop[ 'RES_X' ], o_prop[ 'RES_Y' ] = self.read( '!ff' )
+
+
+  def readPropTattoo( self, o_prop ) :
+    assert 4 == o_prop.size
     ##  Highest tattoo in image, used to generate new tattoos.
-    b_oProp[ 'TATTOO' ] = self.Read( '!I' )
+    o_prop[ 'TATTOO' ] = self.read( '!I' )
 
-  def ReadPropParasites( self, b_oProp ) :
-    self.ReadArray( b_oProp.size )
 
-  def ReadPropUnit( self, b_oProp ) :
-    assert 4 == b_oProp.size
+  def readPropParasites( self, o_prop ) :
+    self.readArray( o_prop.size )
+
+
+  def readPropUnit( self, o_prop ) :
+    assert 4 == o_prop.size
     ##  Print resolution units.
     ABOUT_UNIT = { 0 : 'inch', 1 : 'mm', 2 : 'point', 3 : 'pica' }
-    b_oProp[ 'TATTOO' ] = ABOUT_UNIT[ self.Read( '!I' ) ]
+    o_prop[ 'TATTOO' ] = ABOUT_UNIT[ self.read( '!I' ) ]
 
-  def ReadPropVectors( self, b_oProp ) :
-    b_oProp[ 'VER' ] = self.Read( '!I' )
-    assert 1 == b_oProp[ 'VER' ]
-    b_oProp[ 'ACTIVE_PATH_IDX' ] = self.Read( '!I' )
-    nPaths = self.Read( '!I' )
-    b_oProp[ 'PATHS' ] = []
+
+  def readPropVectors( self, o_prop ) :
+    o_prop[ 'VER' ] = self.read( '!I' )
+    assert 1 == o_prop[ 'VER' ]
+    o_prop[ 'ACTIVE_PATH_IDX' ] = self.read( '!I' )
+    nPaths = self.read( '!I' )
+    o_prop[ 'PATHS' ] = []
     for i in range( nPaths ) :
       mPath = {}
-      mPath[ 'NAME' ]    = self.ReadStr()
-      mPath[ 'TATTOO' ]  = self.Read( '!I' )
-      mPath[ 'VISIBLE' ] = self.ReadBool()
-      mPath[ 'LINKED' ]  = self.ReadBool()
+      mPath[ 'NAME' ]    = self.readStr()
+      mPath[ 'TATTOO' ]  = self.read( '!I' )
+      mPath[ 'VISIBLE' ] = self.readBool()
+      mPath[ 'LINKED' ]  = self.readBool()
       mPath[ 'STROKES' ] = []
-      nParasites = self.Read( '!I' )
-      nStrokes = self.Read( '!I' )
+      nParasites = self.read( '!I' )
+      nStrokes = self.read( '!I' )
       for i in range( nParasites ) :
         oProp = CProp()
-        oProp.type = self.Read( '!I' )
-        oProp.size = self.Read( '!I' )
+        oProp.type = self.read( '!I' )
+        oProp.size = self.read( '!I' )
         assert PROP_PARASITES == oProp.type
-        self.ReadPropParasites( oProp )
+        self.readPropParasites( oProp )
       for i in range( nStrokes ) :
         mStroke = {}
         ABOUT_TYPES = { 1 : 'bezier' }
-        mStroke[ 'TYPE' ] = ABOUT_TYPES[ self.Read( '!I' ) ]
-        mStroke[ 'CLOSED' ] = self.ReadBool()
+        mStroke[ 'TYPE' ] = ABOUT_TYPES[ self.read( '!I' ) ]
+        mStroke[ 'CLOSED' ] = self.readBool()
         mStroke[ 'POINTS' ] = []
-        nFloats = self.Read( '!I' )
+        nFloats = self.read( '!I' )
         assert 2 <= nFloats <= 6
-        nPoints = self.Read( '!I' )
+        nPoints = self.read( '!I' )
         for i in range( nPoints ) :
           mPoint = {}
           ABOUT_TYPES = { 0 : 'anchor', 1 : 'control' }
-          mPoint[ 'TYPE' ]     = ABOUT_TYPES[ self.Read( '!I' ) ]
-          mPoint[ 'X' ]        = self.Read( '!f' )
-          mPoint[ 'Y' ]        = self.Read( '!f' )
-          mPoint[ 'PRESSURE' ] = self.Read( '!f' ) if nFloats >=3 else 1.0
-          mPoint[ 'XTILT' ]    = self.Read( '!f' ) if nFloats >=4 else 0.5
-          mPoint[ 'YTILT' ]    = self.Read( '!f' ) if nFloats >=5 else 0.5
-          mPoint[ 'WHEEL' ]    = self.Read( '!f' ) if nFloats >=6 else 0.5
+          mPoint[ 'TYPE' ]     = ABOUT_TYPES[ self.read( '!I' ) ]
+          mPoint[ 'X' ]        = self.read( '!f' )
+          mPoint[ 'Y' ]        = self.read( '!f' )
+          mPoint[ 'PRESSURE' ] = self.read( '!f' ) if nFloats >=3 else 1.0
+          mPoint[ 'XTILT' ]    = self.read( '!f' ) if nFloats >=4 else 0.5
+          mPoint[ 'YTILT' ]    = self.read( '!f' ) if nFloats >=5 else 0.5
+          mPoint[ 'WHEEL' ]    = self.read( '!f' ) if nFloats >=6 else 0.5
           mStroke[ 'POINTS' ].append( mPoint )
         mPath[ 'STROKES' ].append( mStroke )
-      b_oProp[ 'PATHS' ].append( mPath )
+      o_prop[ 'PATHS' ].append( mPath )
 
-  def ReadProp( self ) :
+
+  def readProp( self ) :
     oProp = CProp()
-    oProp.type = self.Read( '!I' )
-    oProp.size = self.Read( '!I' )
+    oProp.type = self.read( '!I' )
+    oProp.size = self.read( '!I' )
     ABOUT_READERS = {
-      PROP_END         : self.ReadPropEnd,
-      PROP_COMPRESSION : self.ReadPropCompression,
-      PROP_RESOLUTION  : self.ReadPropResolution,
-      PROP_TATTOO      : self.ReadPropTattoo,
-      PROP_PARASITES   : self.ReadPropParasites,
-      PROP_UNIT        : self.ReadPropUnit,
-      PROP_VECTORS     : self.ReadPropVectors
+      PROP_END         : self.readPropEnd,
+      PROP_COMPRESSION : self.readPropCompression,
+      PROP_RESOLUTION  : self.readPropResolution,
+      PROP_TATTOO      : self.readPropTattoo,
+      PROP_PARASITES   : self.readPropParasites,
+      PROP_UNIT        : self.readPropUnit,
+      PROP_VECTORS     : self.readPropVectors
     }
     if oProp.type in ABOUT_READERS :
       ABOUT_READERS[ oProp.type ]( oProp )
     else :
       print( "Ignoring unknown property of type {0}".format( oProp.type ) )
-      self.ReadArray( oProp.size )
+      self.readArray( oProp.size )
     return oProp
 
-  def ReadLayer( self, i_nOffset ) :
+
+  def readLayer( self, i_nOffset ) :
     self.Push( i_nOffset )
     oLayer = CLayer()
-    oLayer.size = self.Read( '!II' )
+    oLayer.size = self.read( '!II' )
     ABOUT_MODES = {
       0 : ('RGB', False),
       1 : ('RGB', True),
@@ -175,9 +208,10 @@ class CReaderXcf( CReader ) :
       3 : ('L', True),
       4 : ('P', False),
       5 : ('P', True) }
-    oLayer.mode, oLayer.alpha = ABOUT_MODES[ self.Read( '!I' ) ]
+    oLayer.mode, oLayer.alpha = ABOUT_MODES[ self.read( '!I' ) ]
     self.Pop()
     return oLayer
+
 
 def open( fp, mode = 'r' ) :
   assert 'r' == mode
@@ -186,19 +220,19 @@ def open( fp, mode = 'r' ) :
   oImg = CImage()
 
   ##  Read header
-  sMagic = oReader.ReadArray( 9 )
+  sMagic = oReader.readArray( 9 )
   assert sMagic.startswith( 'gimp xcf' )
-  sVer = oReader.ReadArray( 4 )
+  sVer = oReader.readArray( 4 )
   assert sVer in [ 'file', 'v001', 'v002' ]
-  assert 0 == oReader.Read( '!B' )
-  oImg.size = oReader.Read( '!II' )
+  assert 0 == oReader.read( '!B' )
+  oImg.size = oReader.read( '!II' )
   assert oImg.size[ 0 ] > 0 and oImg.size[ 1 ] > 0
   ABOUT_MODE = { 0 : 'RGB', 1 : 'L', 2 : 'P' }
-  oImg.mode = ABOUT_MODE[ oReader.Read( '!I' ) ]
+  oImg.mode = ABOUT_MODE[ oReader.read( '!I' ) ]
 
   ##  Read properties.
   while True :
-    oProp = oReader.ReadProp()
+    oProp = oReader.readProp()
     ##  Last property will have type PROP_END and size 0.
     if PROP_END == oProp.type :
       break
@@ -206,10 +240,10 @@ def open( fp, mode = 'r' ) :
 
   ##  Read layers.
   while True :
-    nOffset = oReader.Read( '!I' )
+    nOffset = oReader.read( '!I' )
     if 0 == nOffset :
       break
-    oImg.layers.append( oReader.ReadLayer( nOffset ) )
+    oImg.layers.append( oReader.readLayer( nOffset ) )
 
   return oImg
 
