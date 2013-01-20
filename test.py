@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# pyxcf
-# Copyright 2011 Grigory Petrov
+# pyxcf simple test.
+# Copyright 2013 Grigory Petrov
 # See LICENSE for details.
 
 # Test.
