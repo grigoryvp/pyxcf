@@ -214,7 +214,7 @@ class CReaderXcf( CReader ):
 
 def open( fp, mode = 'r' ):
   assert 'r' == mode
-  with __builtin__.open( fp, mode ) as oFile:
+  with __builtin__.open( fp, mode + 'b' ) as oFile:
     oReader = CReaderXcf( oFile.read() )
   oImg = CImage()
 
